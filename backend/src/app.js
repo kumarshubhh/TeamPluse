@@ -15,9 +15,23 @@ dotenv.config();
 
 const app = express();
 
+const defaultOrigins = [
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+];
+
 const rawOrigins = process.env.CORS_ORIGIN || '*';
-const allowedOrigins = rawOrigins.split(',').map((o) => o.trim()).filter(Boolean);
-if (!allowedOrigins.length) allowedOrigins.push('*');
+const envOrigins = rawOrigins.split(',').map((o) => o.trim()).filter(Boolean);
+
+const allowedOrigins = envOrigins.length ? envOrigins : ['*'];
+
+if (!allowedOrigins.includes('*')) {
+  defaultOrigins.forEach((origin) => {
+    if (!allowedOrigins.includes(origin)) allowedOrigins.push(origin);
+  });
+}
 
 app.use(cors({
   origin: (origin, callback) => {
