@@ -1,0 +1,35 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+  --bg: #0D0F14; /* Neo Aurora Dark */
+  --grad-from: #4e54c8; /* Aurora gradient */
+  --grad-to: #8f94fb;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  background-color: var(--bg);
+  color: #e5e5e5;
+  font-family: 'Manrope', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, 'Apple Color Emoji', 'Segoe UI Emoji';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+}
+
+.gradient-accent {
+  background-image: linear-gradient(135deg, var(--grad-from), var(--grad-to));
+}
+
+.soft-glow {
+  box-shadow: 0 8px 24px rgba(79, 84, 200, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}

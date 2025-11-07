@@ -1,0 +1,188 @@
+{
+  "info": {
+    "name": "TeamPulse Backend",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:4000" },
+    { "key": "token", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Signup",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "url": { "raw": "{{baseUrl}}/api/auth/signup", "host": ["{{baseUrl}}"], "path": ["api","auth","signup"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"alice\",\n  \"email\": \"alice@example.com\",\n  \"password\": \"Passw0rd!\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res && res.data && res.data.token) {",
+                  "  pm.collectionVariables.set('token', res.data.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api","auth","login"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"alice@example.com\",\n  \"password\": \"Passw0rd!\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/auth/me", "host": ["{{baseUrl}}"], "path": ["api","auth","me"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Rooms",
+      "item": [
+        {
+          "name": "Create Room",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/rooms", "host": ["{{baseUrl}}"], "path": ["api","rooms"] },
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"General\"\n}" }
+          }
+        },
+        {
+          "name": "List My Rooms",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/rooms", "host": ["{{baseUrl}}"], "path": ["api","rooms"] }
+          }
+        },
+        {
+          "name": "Room Details",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/rooms/:roomId", "host": ["{{baseUrl}}"], "path": ["api","rooms",":roomId"] }
+          }
+        },
+        {
+          "name": "Invite User",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/rooms/:roomId/invite", "host": ["{{baseUrl}}"], "path": ["api","rooms",":roomId","invite"] },
+            "body": { "mode": "raw", "raw": "{\n  \"userId\": \"<inviteeObjectId>\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Messages",
+      "item": [
+        {
+          "name": "Send Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/rooms/:roomId/messages", "host": ["{{baseUrl}}"], "path": ["api","rooms",":roomId","messages"] },
+            "body": { "mode": "raw", "raw": "{\n  \"content\": \"Hello @bob!\"\n}" }
+          }
+        },
+        {
+          "name": "List Messages (paginated)",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/rooms/:roomId/messages?limit=20", "host": ["{{baseUrl}}"], "path": ["api","rooms",":roomId","messages"], "query": [ {"key":"limit","value":"20"} ] }
+          }
+        },
+        {
+          "name": "Read Receipts",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/rooms/:roomId/read-receipts", "host": ["{{baseUrl}}"], "path": ["api","rooms",":roomId","read-receipts"] },
+            "body": { "mode": "raw", "raw": "{\n  \"messageId\": \"<messageObjectId>\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "List Notifications",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/notifications?limit=20", "host": ["{{baseUrl}}"], "path": ["api","notifications"], "query": [ {"key":"limit","value":"20"} ] }
+          }
+        },
+        {
+          "name": "Mark Read",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Authorization", "value": "Bearer {{token}}" }, {"key":"Content-Type","value":"application/json"} ],
+            "url": { "raw": "{{baseUrl}}/api/notifications/:id/read", "host": ["{{baseUrl}}"], "path": ["api","notifications",":id","read"] }
+          }
+        },
+        {
+          "name": "Read All",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/notifications/read-all", "host": ["{{baseUrl}}"], "path": ["api","notifications","read-all"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Analytics",
+      "item": [
+        {
+          "name": "Top Active Rooms",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/analytics/top-rooms?days=7&limit=10", "host": ["{{baseUrl}}"], "path": ["api","analytics","top-rooms"], "query": [ {"key":"days","value":"7"},{"key":"limit","value":"10"} ] }
+          }
+        }
+      ]
+    }
+  ]
+}
+
