@@ -23,7 +23,7 @@ export default function RoomPage() {
   const { roomId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { messages, loading, error, hasMore, loadMore, sendMessage, addIncoming, addReadReceipt, markReadUpTo } = useMessages(roomId);
+  const { messages, loading, error, hasMore, loadMore, sendMessage, addIncoming, addReadReceipt, markReadUpTo } = useMessages(roomId, user);
   const { onlineUsers } = usePresence(roomId);
   const { details, loading: roomDetailsLoading, fetchDetails } = useRoomDetails(roomId);
   const { fetchRooms } = useRooms();
@@ -33,7 +33,7 @@ export default function RoomPage() {
 
   const enhancedMessages = messages.map((m) => ({
     ...m,
-    isMine: user && (m.senderId === user._id || m.username === user.username),
+    isMine: user && (m.senderId === user._id || m.username === user.username || m.senderId === user.id),
   }));
 
   // Wire room socket events

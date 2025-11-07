@@ -70,9 +70,15 @@ export default function ChatWindow({ messages = [], onLoadMore, hasMore, onScrol
             <div className="text-neutral-400 text-sm">Loading...</div>
           </div>
         )}
-        {messages.map((m) => (
+        {messages.map((m) => {
+          const displayName = m.displayName || m.name || m.username || 'User';
+          const createdTime = m.createdAt ? new Date(m.createdAt).toLocaleTimeString() : '';
+          const showPending = m.isMine && m.status === 'pending';
+          const showError = m.isMine && m.status === 'error';
+
+          return (
           <motion.div
-            key={m.id}
+            key={m.clientId || m.id}
             data-message-id={m.id || m._id}
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
@@ -81,21 +87,26 @@ export default function ChatWindow({ messages = [], onLoadMore, hasMore, onScrol
               m.isMine ? 'ml-auto gradient-accent text-white soft-glow' : 'glass border border-white/10'
             }`}
           >
-            <div className="text-[11px] opacity-80 mb-0.5 flex items-center justify-between">
-              <span>{m.username} • {new Date(m.createdAt).toLocaleTimeString()}</span>
+            <div className="text-[11px] opacity-80 mb-0.5 flex items-center justify-between gap-2">
+              <span>{displayName}{createdTime ? ` • ${createdTime}` : ''}</span>
               {m.isMine && (
-                <MessageTicks 
-                  seenByCount={m.readBy?.length || 0} 
-                  membersCount={membersCount} 
-                  isMine={m.isMine} 
-                />
+                <div className="flex items-center gap-1">
+                  {showPending && <span className="text-[10px]">Sending…</span>}
+                  {showError && <span className="text-[10px] text-red-200">Failed</span>}
+                  <MessageTicks 
+                    seenByCount={m.readBy?.length || 0} 
+                    membersCount={membersCount} 
+                    isMine={m.isMine} 
+                  />
+                </div>
               )}
             </div>
             <div className="leading-relaxed whitespace-pre-wrap break-words" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
               {m.content}
             </div>
           </motion.div>
-        ))}
+        );
+        })}
       </div>
       {onScrollBottom && (
         <button 

@@ -17,7 +17,7 @@ export function setLogoutCallback(callback) {
 
 // Create axios instance
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://teampluse.onrender.com',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000',
   headers: {
     'Content-Type': 'application/json',
   },

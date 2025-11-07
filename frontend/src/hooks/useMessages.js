@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import apiClient from '../api/client.js';
 import endpoints from '../api/endpoints.js';
+import { getSocket } from '../socket/index.js';
+import { SOCKET_EVENTS } from '../socket/events.js';
 
 /**
  * useMessages Hook - per-room messages management (REST-based)
@@ -8,7 +10,7 @@ import endpoints from '../api/endpoints.js';
  * - Load more using before cursor
  * - Send message (REST)
  */
-export function useMessages(roomId) {
+export function useMessages(roomId, currentUser = null) {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -16,12 +18,19 @@ export function useMessages(roomId) {
   const [sending, setSending] = useState(false);
   const loadingMoreRef = useRef(false);
   const nextBeforeRef = useRef(null);
+  const currentUserRef = useRef(currentUser);
+
+  useEffect(() => {
+    currentUserRef.current = currentUser;
+  }, [currentUser]);
 
   const normalize = useCallback((m) => ({
     id: m.id || m._id,
     roomId: m.roomId?.toString?.() || m.roomId,
     senderId: m.senderId?.toString?.() || m.senderId,
     username: m.senderId?.username || m.sender?.username || m.username || 'user',
+    name: m.senderId?.name || m.sender?.name || m.name || null,
+    displayName: m.senderId?.name || m.sender?.name || m.name || m.senderId?.username || m.sender?.username || m.username || 'user',
     content: m.content,
     createdAt: m.createdAt,
     readBy: (m.readBy || []).map((r) => ({
@@ -79,25 +88,175 @@ export function useMessages(roomId) {
   }, [hasMore, roomId, fetchMessages]);
 
   const sendMessage = useCallback(async (content) => {
-    if (!roomId || !content?.trim()) return;
-    try {
-      setSending(true);
-      const res = await apiClient.post(endpoints.messages.send(roomId), { content });
-      // Do not append locally; rely on socket 'message:created' to avoid double entries
-      if (res.data?.success) return res.data.data;
-    } finally {
-      setSending(false);
+    if (!roomId || !content?.trim()) return null;
+
+    const trimmed = content.trim();
+    const tempId = `temp-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+    const me = currentUserRef.current;
+    const myId = me?._id?.toString?.() || me?.id?.toString?.() || null;
+    const optimisticMessage = {
+      id: tempId,
+      clientId: tempId,
+      roomId,
+      senderId: myId,
+      username: me?.username || 'you',
+      name: me?.name || null,
+      displayName: me?.name || me?.username || 'You',
+      content: trimmed,
+      createdAt: new Date().toISOString(),
+      readBy: [],
+      isMine: true,
+      status: 'pending',
+      optimistic: true,
+    };
+
+    setMessages((prev) => [...prev, optimisticMessage]);
+
+    const updateFromServerPayload = (payload) => {
+      const normalized = normalize(payload);
+      const meId = currentUserRef.current?._id?.toString?.() || currentUserRef.current?.id?.toString?.();
+      const result = {
+        ...normalized,
+        isMine: meId ? normalized.senderId === meId : false,
+        status: 'sent',
+        optimistic: false,
+      };
+      setMessages((prev) =>
+        prev.map((m) => {
+          if (m.id === tempId || m.clientId === tempId) {
+            return { ...result };
+          }
+          return m;
+        })
+      );
+      return result;
+    };
+
+    const markAsError = (message) => {
+      setMessages((prev) =>
+        prev.map((m) => {
+          if (m.id === tempId || m.clientId === tempId) {
+            return { ...m, status: 'error', error: message };
+          }
+          return m;
+        })
+      );
+    };
+
+    let delivered = false;
+    let finalResult = null;
+
+    const socket = getSocket();
+    if (socket) {
+      try {
+        setSending(true);
+        const socketResponse = await new Promise((resolve, reject) => {
+          try {
+            socket
+              .timeout(5000)
+              .emit(
+                SOCKET_EVENTS.NEW_MESSAGE,
+                { roomId, content: trimmed, clientId: tempId },
+                (err, response) => {
+                  if (err) {
+                    reject(typeof err === 'string' ? new Error(err) : err);
+                    return;
+                  }
+                  resolve(response);
+                }
+              );
+          } catch (emitError) {
+            reject(emitError);
+          }
+        });
+
+        if (socketResponse?.success && socketResponse.data) {
+          delivered = true;
+          finalResult = updateFromServerPayload(socketResponse.data);
+        } else if (socketResponse?.error?.message) {
+          throw new Error(socketResponse.error.message);
+        }
+      } catch (err) {
+        console.warn('Socket emit failed, falling back to REST', err);
+      } finally {
+        setSending(false);
+      }
     }
+
+    if (!delivered) {
+      try {
+        setSending(true);
+        const res = await apiClient.post(endpoints.messages.send(roomId), { content: trimmed });
+        if (res.data?.success) {
+          delivered = true;
+          finalResult = updateFromServerPayload(res.data.data);
+        } else {
+          throw new Error('Failed to send message');
+        }
+      } catch (err) {
+        const message = err?.response?.data?.error?.message || err?.message || 'Failed to send message';
+        markAsError(message);
+        console.error('Failed to send message', err);
+        return null;
+      } finally {
+        setSending(false);
+      }
+    }
+
+    return finalResult;
   }, [roomId, normalize]);
 
   // Append incoming socket message if it belongs to this room
   const addIncoming = useCallback((payload) => {
     if (!payload || payload.roomId !== roomId) return;
     const candidate = normalize(payload);
+    const me = currentUserRef.current;
+    const myId = me?._id?.toString?.() || me?.id?.toString?.() || null;
+
     setMessages((prev) => {
-      // de-dup by id
-      if (prev.some((m) => (m.id || m._id) === (candidate.id || candidate._id))) return prev;
-      return [...prev, candidate];
+      const existingIndex = prev.findIndex((m) => (m.id || m._id) === (candidate.id || candidate._id));
+      if (existingIndex >= 0) {
+        const next = [...prev];
+        next[existingIndex] = {
+          ...prev[existingIndex],
+          ...candidate,
+          isMine: prev[existingIndex].isMine || (myId && candidate.senderId === myId),
+          status: 'sent',
+          optimistic: false,
+        };
+        return next;
+      }
+
+      const pendingIndex = prev.findIndex(
+        (m) =>
+          m.optimistic &&
+          m.status === 'pending' &&
+          m.isMine &&
+          myId &&
+          candidate.senderId === myId &&
+          m.content === candidate.content
+      );
+
+      if (pendingIndex >= 0) {
+        const next = [...prev];
+        next[pendingIndex] = {
+          ...candidate,
+          isMine: true,
+          status: 'sent',
+          optimistic: false,
+        };
+        return next;
+      }
+
+      return [
+        ...prev,
+        {
+          ...candidate,
+          isMine: myId ? candidate.senderId === myId : false,
+          status: 'sent',
+          optimistic: false,
+        },
+      ];
     });
   }, [roomId, normalize]);
 

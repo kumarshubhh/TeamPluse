@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { UserPlus, Search } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { UserPlus, AlertCircle, CheckCircle2 } from 'lucide-react';
 import apiClient from '../api/client.js';
 import endpoints from '../api/endpoints.js';
 
@@ -10,10 +10,30 @@ export default function InviteUser({ roomId }) {
   const [success, setSuccess] = useState('');
   const [username, setUsername] = useState('');
 
+  const usernameError = useMemo(() => {
+    if (!username.trim()) return '';
+    if (username.trim().length < 3) return 'Username must be at least 3 characters';
+    if (username.trim().length > 30) return 'Username is too long (max 30 characters)';
+    if (!/^[a-z0-9_]+$/i.test(username.trim())) return 'Username can only contain letters, numbers, and underscores';
+    return '';
+  }, [username]);
+
+  const userIdError = useMemo(() => {
+    if (!userId.trim()) return '';
+    if (!/^[a-fA-F0-9]{24}$/.test(userId.trim())) return 'User ID must be a 24-character hex string';
+    return '';
+  }, [userId]);
+
   const onInvite = async (e) => {
     e.preventDefault();
     setError('');
     setSuccess('');
+
+    if (usernameError || userIdError) {
+      setError(usernameError || userIdError);
+      return;
+    }
+
     try {
       setLoading(true);
       let targetUserId = userId.trim();
@@ -24,7 +44,7 @@ export default function InviteUser({ roomId }) {
         targetUserId = res.data.data.user._id;
       }
       if (!targetUserId) {
-        setError('Provide username or user ID');
+        setError('Provide a valid username or user ID');
         return;
       }
       await apiClient.post(endpoints.rooms.invite(roomId), { userId: targetUserId });
@@ -45,7 +65,13 @@ export default function InviteUser({ roomId }) {
           className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[rgba(143,148,251,0.45)]"
           placeholder="Invite by username (preferred)"
           value={username}
-          onChange={(e) => setUsername(e.target.value)}
+          onChange={(e) => {
+            setUsername(e.target.value.toLowerCase());
+            if (error) setError('');
+          }}
+          onBlur={() => {
+            if (usernameError) setError(usernameError);
+          }}
           disabled={loading}
         />
         <span className="text-xs text-neutral-400">or</span>
@@ -53,19 +79,35 @@ export default function InviteUser({ roomId }) {
           className="w-64 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[rgba(143,148,251,0.45)]"
           placeholder="User ID (ObjectId)"
           value={userId}
-          onChange={(e) => setUserId(e.target.value)}
+          onChange={(e) => {
+            setUserId(e.target.value.trim());
+            if (error) setError('');
+          }}
+          onBlur={() => {
+            if (userIdError) setError(userIdError);
+          }}
           disabled={loading}
         />
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || (!!usernameError && !!username.trim()) || (!!userIdError && !!userId.trim())}
           className="inline-flex items-center gap-1 px-3 py-2 rounded-lg gradient-accent soft-glow text-white text-sm hover:opacity-95 disabled:opacity-50"
         >
           <UserPlus size={16} /> Invite
         </button>
       </form>
-      {error && <div className="text-xs text-red-400 mt-2">{error}</div>}
-      {success && <div className="text-xs text-emerald-400 mt-2">{success}</div>}
+      {error && (
+        <div className="text-xs text-red-400 mt-2 flex items-center gap-1">
+          <AlertCircle size={12} />
+          {error}
+        </div>
+      )}
+      {success && (
+        <div className="text-xs text-emerald-400 mt-2 flex items-center gap-1">
+          <CheckCircle2 size={12} />
+          {success}
+        </div>
+      )}
     </div>
   );
 }

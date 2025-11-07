@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { X } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { X, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 /**
@@ -15,12 +15,28 @@ export default function CreateRoomModal({ isOpen, onClose, onCreateRoom, loading
   const [name, setName] = useState('');
   const [error, setError] = useState('');
 
+  const validateName = (value) => {
+    const trimmed = value.trim();
+    if (!trimmed) return 'Room name is required';
+    if (trimmed.length < 3) return 'Room name must be at least 3 characters';
+    if (trimmed.length > 60) return 'Room name is too long (max 60 characters)';
+    if (!/^[a-zA-Z0-9\s]+$/.test(trimmed)) {
+      return 'Only letters, numbers, and spaces are allowed';
+    }
+    return '';
+  };
+
+  useEffect(() => {
+    if (!isOpen) {
+      setName('');
+      setError('');
+    }
+  }, [isOpen]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!name.trim()) {
-      setError('Room name is required');
-      return;
-    }
+    const validationError = validateName(name);
+    if (validationError) return setError(validationError);
     try {
       setError('');
       await onCreateRoom(name.trim());
@@ -57,14 +73,25 @@ export default function CreateRoomModal({ isOpen, onClose, onCreateRoom, loading
                 value={name}
                 onChange={(e) => {
                   setName(e.target.value);
-                  setError('');
+                if (error) {
+                  setError(validateName(e.target.value));
+                }
                 }}
+              onBlur={() => {
+                const validationError = validateName(name);
+                setError(validationError);
+              }}
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-[rgba(143,148,251,0.45)]"
                 placeholder="e.g., General, Dev Team"
                 autoFocus
                 disabled={loading}
               />
-              {error && <p className="text-sm text-red-400 mt-1">{error}</p>}
+              {error && (
+                <p className="text-sm text-red-400 mt-1 flex items-center gap-1">
+                  <AlertCircle size={14} />
+                  {error}
+                </p>
+              )}
             </div>
             <div className="flex gap-2">
               <button
@@ -77,7 +104,7 @@ export default function CreateRoomModal({ isOpen, onClose, onCreateRoom, loading
               </button>
               <button
                 type="submit"
-                disabled={loading || !name.trim()}
+                disabled={loading || !!validateName(name)}
                 className="flex-1 px-4 py-2 rounded-xl gradient-accent soft-glow text-white hover:opacity-95 transition disabled:opacity-50"
               >
                 {loading ? 'Creating...' : 'Create'}
