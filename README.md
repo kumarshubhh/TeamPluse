@@ -25,7 +25,7 @@ A full-stack real-time team communication application built with the MERN stack 
 - Rate limiting support
 - Secure error handling
 
-### UI/UX Features
+### UI/UX Features 
 - Modern dark theme with glassmorphism design
 - Responsive layout (mobile-friendly)
 - Smooth animations with Framer Motion
