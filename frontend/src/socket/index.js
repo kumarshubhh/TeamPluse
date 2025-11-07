@@ -8,7 +8,7 @@ export function connectSocket(token) {
     try { socketInstance.disconnect(); } catch (e) {}
     socketInstance = null;
   }
-  socketInstance = io(import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000', {
+  socketInstance = io(import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_BASE_URL || 'https://teampluse.onrender.com', {
     auth: { token },
     transports: ['websocket'],
   });
