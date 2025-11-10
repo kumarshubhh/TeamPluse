@@ -70,6 +70,15 @@ export function useNotifications() {
     setUnreadCount(0);
   }, []);
 
+  const deleteNotification = useCallback(async (id) => {
+    await apiClient.delete(endpoints.notifications.delete(id));
+    setItems((prev) => {
+      const next = prev.filter((n) => n.id !== id);
+      recalcUnread(next);
+      return next;
+    });
+  }, [recalcUnread]);
+
   // Socket live updates
   useEffect(() => {
     const s = getSocket();
@@ -87,19 +96,41 @@ export function useNotifications() {
         setUnreadCount((c) => Math.max(0, c - 1));
       }
     };
+    const onDeleted = ({ id }) => {
+      if (!id) return;
+      setItems((prev) => {
+        const next = prev.filter((n) => n.id !== id);
+        recalcUnread(next);
+        return next;
+      });
+    };
+
     s.on(SOCKET_EVENTS.NOTIFICATION_CREATED, onCreated);
     s.on(SOCKET_EVENTS.NOTIFICATION_READ, onRead);
+    s.on(SOCKET_EVENTS.NOTIFICATION_DELETED, onDeleted);
     return () => {
       s.off(SOCKET_EVENTS.NOTIFICATION_CREATED, onCreated);
       s.off(SOCKET_EVENTS.NOTIFICATION_READ, onRead);
+      s.off(SOCKET_EVENTS.NOTIFICATION_DELETED, onDeleted);
     };
-  }, []);
+  }, [recalcUnread]);
 
   useEffect(() => {
     fetchList({ initial: true });
   }, [fetchList]);
 
-  return { items, loading, error, hasMore, loadMore, markRead, markAllRead, unreadCount, refresh: () => fetchList({ initial: true }) };
+  return {
+    items,
+    loading,
+    error,
+    hasMore,
+    loadMore,
+    markRead,
+    markAllRead,
+    deleteNotification,
+    unreadCount,
+    refresh: () => fetchList({ initial: true }),
+  };
 }
 
 

@@ -36,6 +36,29 @@ export async function markAllRead(req, res, next) {
   } catch (err) { next(err); }
 }
 
+export async function deleteNotification(req, res, next) {
+  try {
+    const userId = req.user.id;
+    const { id } = req.params;
+    const notification = await Notification.findOneAndDelete({ _id: id, userId });
+    if (!notification) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOTIF_NOT_FOUND', message: 'Notification not found' },
+      });
+    }
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`user:${userId}`).emit('notification:deleted', { id: notification._id.toString() });
+    }
+
+    return res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
 function toDTO(n) {
   return {
     id: n._id?.toString?.() || n._id,

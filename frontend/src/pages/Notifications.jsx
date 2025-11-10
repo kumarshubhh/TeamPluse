@@ -1,9 +1,18 @@
-import { Bell, CheckCheck, Trash2, AlertTriangle } from 'lucide-react';
+import { Bell, CheckCheck, Trash2 } from 'lucide-react';
 import { useNotifications } from '../hooks/useNotifications.js';
 import { Link } from 'react-router-dom';
 
 export default function NotificationsPage() {
-  const { items, loading, error, hasMore, loadMore, markRead, markAllRead } = useNotifications();
+  const {
+    items,
+    loading,
+    error,
+    hasMore,
+    loadMore,
+    markRead,
+    markAllRead,
+    deleteNotification,
+  } = useNotifications();
   
   const getNotificationIcon = (type) => {
     switch (type) {
@@ -102,16 +111,22 @@ export default function NotificationsPage() {
                 <div className="text-xs text-neutral-400 mt-1">
                   {new Date(n.createdAt).toLocaleString()}
                 </div>
-                {!n.read && (
-                  <div className="mt-2">
+                <div className="mt-2 flex items-center gap-2">
+                  {!n.read && (
                     <button
                       onClick={() => markRead(n.id)}
                       className="text-xs px-2 py-1 rounded bg-white/5 hover:bg-white/10 transition"
                     >
                       Mark read
                     </button>
-                  </div>
-                )}
+                  )}
+                  <button
+                    onClick={() => deleteNotification(n.id)}
+                    className="text-xs inline-flex items-center gap-1 px-2 py-1 rounded bg-red-500/10 hover:bg-red-500/20 text-red-300 transition"
+                  >
+                    <Trash2 size={12} /> Delete
+                  </button>
+                </div>
               </div>
             </div>
           </div>

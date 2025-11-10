@@ -42,6 +42,7 @@ export const endpoints = {
     },
     markRead: (id) => `${API_BASE}/api/notifications/${id}/read`,
     readAll: `${API_BASE}/api/notifications/read-all`,
+    delete: (id) => `${API_BASE}/api/notifications/${id}`,
   },
   
   // Analytics
