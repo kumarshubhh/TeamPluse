@@ -20,7 +20,7 @@ export function AuthProvider({ children }) {
   useAppSocket(token);
 
   const login = async ({ identifier, password }) => {
-    const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000'}/api/auth/login`, {
+    const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://teampluse.onrender.com'}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ identifier, password }),
@@ -40,7 +40,7 @@ export function AuthProvider({ children }) {
   };
 
   const signup = async ({ name, username, email, password }) => {
-    const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000'}/api/auth/signup`, {
+    const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://teampluse.onrender.com'}/api/auth/signup`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, username, email, password }),
