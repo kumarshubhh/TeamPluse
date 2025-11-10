@@ -61,7 +61,7 @@ export function AuthProvider({ children }) {
     const currentToken = token;
     if (currentToken) {
       try {
-        await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000'}/api/users/status`, {
+        await fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://teampluse.onrender.com'}/api/users/status`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
